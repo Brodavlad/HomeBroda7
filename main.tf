@@ -1,35 +1,33 @@
 ## create a custom vpc
-resource "aws_vpc" "my_vpc" {
+resource "aws_vpc" "brodavpc" {
   cidr_block           = "10.10.0.0/16"
   enable_dns_support   = "true"
   enable_dns_hostnames = "true"
 }
 
 ## create internet gateway
-resource "aws_internet_gateway" "my_gateway" {
-  vpc_id = aws_vpc.my_vpc.id
+resource "aws_internet_gateway" "brodagateway" {
+  vpc_id = aws_vpc.brodavpc.id
 }
 
 ## create route table with custom settings
-resource "aws_route_table" "my_route_table" {
-  vpc_id = aws_vpc.my_vpc.id
-
+resource "aws_route_table" "broda_routetable" {
+  vpc_id = aws_vpc.brodavpc.id
   route {
     cidr_block = "0.0.0.0/0"
-    gateway_id = aws_internet_gateway.my_gateway.id
+    gateway_id = aws_internet_gateway.brodagateway.id
   }
 }
 
 ## create subnets 
-resource "aws_subnet" "my_subnet1" {
-  vpc_id                  = aws_vpc.my_vpc.id
+resource "aws_subnet" "brodasubnet1" {
+  vpc_id                  = aws_vpc.brodavpc.id
   cidr_block              = "10.10.1.0/24"
   map_public_ip_on_launch = "true"
   availability_zone       = "us-east-1a"
 }
-
-resource "aws_subnet" "my_subnet2" {
-  vpc_id                  = aws_vpc.my_vpc.id
+resource "aws_subnet" "brodasubnet2" {
+  vpc_id                  = aws_vpc.brodavpc.id
   cidr_block              = "10.10.2.0/24"
   map_public_ip_on_launch = "true"
   availability_zone       = "us-east-1b"
@@ -37,47 +35,44 @@ resource "aws_subnet" "my_subnet2" {
 
 ## sync subnet with route table
 resource "aws_route_table_association" "table_association1" {
-  subnet_id      = aws_subnet.my_subnet1.id
-  route_table_id = aws_route_table.my_route_table.id
+  subnet_id      = aws_subnet.brodasubnet1.id
+  route_table_id = aws_route_table.broda_routetable.id
 }
 resource "aws_route_table_association" "table_association2" {
-  subnet_id      = aws_subnet.my_subnet2.id
-  route_table_id = aws_route_table.my_route_table.id
+  subnet_id      = aws_subnet.brodasubnet2.id
+  route_table_id = aws_route_table.broda_routetable.id
 }
 
 ## create security group with acces to port 80
-resource "aws_security_group" "allow_web" {
+resource "aws_security_group" "allow_80port" {
   name        = "allow_web_traffic"
   description = "Allow Web inbound traffic"
-  vpc_id      = aws_vpc.my_vpc.id
-
+  vpc_id      = aws_vpc.brodavpc.id
   ingress {
     from_port   = 3306
     to_port     = 3306
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
-
   egress {
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
-
   tags = {
     Name = "allow_web"
   }
 }
 
 ## initialize a rule in a network acl 
-resource "aws_network_acl" "bar" {
-  vpc_id = aws_vpc.my_vpc.id
+resource "aws_network_acl" "deny_acces" {
+  vpc_id = aws_vpc.brodavpc.id
 }
 
 ## add a rule ti block seted ip
-resource "aws_network_acl_rule" "bar" {
-  network_acl_id = aws_network_acl.bar.id
+resource "aws_network_acl_rule" "deny_acces" {
+  network_acl_id = aws_network_acl.deny_acces.id
   rule_number    = 100
   protocol       = -1
   rule_action    = "deny"
@@ -87,9 +82,9 @@ resource "aws_network_acl_rule" "bar" {
 }
 
 ## add database subnet group
-resource "aws_db_subnet_group" "db_sg" {
+resource "aws_db_subnet_group" "db_subnetgroup" {
   name       = "subnet_group"
-  subnet_ids = [aws_subnet.my_subnet1.id, aws_subnet.my_subnet2.id]
+  subnet_ids = [aws_subnet.brodasubnet1.id, aws_subnet.brodasubnet2.id]
 }
 
 ## create a var
@@ -107,8 +102,8 @@ resource "aws_db_instance" "my_instance" {
   port                   = "3306"
   storage_type           = "gp2"
   allocated_storage      = 20
-  vpc_security_group_ids = [aws_security_group.allow_web.id]
-  db_subnet_group_name   = aws_db_subnet_group.db_sg.id
+  vpc_security_group_ids = [aws_security_group.allow_80port.id]
+  db_subnet_group_name   = aws_db_subnet_group.db_subnetgroup.id
   parameter_group_name   = "default.mysql5.7"
   skip_final_snapshot    = true
   publicly_accessible    = true
