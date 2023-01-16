@@ -1,16 +1,16 @@
-# Create a custom VPC
+## create a custom vpc
 resource "aws_vpc" "my_vpc" {
   cidr_block           = "10.10.0.0/16"
   enable_dns_support   = "true"
   enable_dns_hostnames = "true"
 }
 
-# Create Internet Gateway
+## create internet gateway
 resource "aws_internet_gateway" "my_gateway" {
   vpc_id = aws_vpc.my_vpc.id
 }
 
-# Create Custom Route Table
+## create route table with custom settings
 resource "aws_route_table" "my_route_table" {
   vpc_id = aws_vpc.my_vpc.id
 
@@ -20,7 +20,7 @@ resource "aws_route_table" "my_route_table" {
   }
 }
 
-# Create Subnets 
+## create subnets 
 resource "aws_subnet" "my_subnet1" {
   vpc_id                  = aws_vpc.my_vpc.id
   cidr_block              = "10.10.1.0/24"
@@ -35,7 +35,7 @@ resource "aws_subnet" "my_subnet2" {
   availability_zone       = "us-east-1b"
 }
 
-# Associate subnet with Route Table
+## sync subnet with route table
 resource "aws_route_table_association" "table_association1" {
   subnet_id      = aws_subnet.my_subnet1.id
   route_table_id = aws_route_table.my_route_table.id
@@ -45,7 +45,7 @@ resource "aws_route_table_association" "table_association2" {
   route_table_id = aws_route_table.my_route_table.id
 }
 
-# Create Security Group to allow port 80
+## create security group with acces to port 80
 resource "aws_security_group" "allow_web" {
   name        = "allow_web_traffic"
   description = "Allow Web inbound traffic"
@@ -70,12 +70,12 @@ resource "aws_security_group" "allow_web" {
   }
 }
 
-# Create a rule in a network ACL
+## initialize a rule in a network acl 
 resource "aws_network_acl" "bar" {
   vpc_id = aws_vpc.my_vpc.id
 }
 
-# Add a rule 
+## add a rule ti block seted ip
 resource "aws_network_acl_rule" "bar" {
   network_acl_id = aws_network_acl.bar.id
   rule_number    = 100
@@ -86,16 +86,16 @@ resource "aws_network_acl_rule" "bar" {
   to_port        = 0
 }
 
-# Add DB subnet group
+## add database subnet group
 resource "aws_db_subnet_group" "db_sg" {
   name       = "subnet_group"
   subnet_ids = [aws_subnet.my_subnet1.id, aws_subnet.my_subnet2.id]
 }
 
-# Create a Variable
+## create a var
 variable "MYSQL_PWD" {}
 
-# Create RDS Instance
+## create rds instance
 resource "aws_db_instance" "my_instance" {
   identifier             = "mysqldb"
   db_name                = "dbtest"
